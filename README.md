@@ -10,6 +10,7 @@ and safety switch of vsp works unchanged, and `SAP()` gains the actions below.
 
 | Extension | `SAP()` actions | What it does |
 |---|---|---|
+| `forms` | `read`/`edit` `SSFO`, `FORM`, `SFPF`, `SFPI`; `create SSFO`/`FORM`; `vspx form` | Print forms as documents: Smart Forms, SAPscript forms, Adobe forms and interfaces. Needs the ABAP form service in [`abap/`](abap/README.md) |
 | `classic-badi` | `create`/`delete SXCI` | Classic BAdI implementations (SE19), with their class and filters |
 | `idoc-types` | `read`/`create`/`edit`/`delete SEGM`, `… IEXT` | IDoc segment types (WE31) and extensions of basic types (WE30), including release handling |
 | `transport-import` | `import TRANSPORT`, `vspx transport import` | Imports released requests into the connected system, as STMS_IMPORT does there; synchronous or as a background task |
@@ -17,7 +18,7 @@ and safety switch of vsp works unchanged, and `SAP()` gains the actions below.
 `SAP(action="help")` lists them with examples; `vspx --version` names the
 extensions and their versions.
 
-## How they work
+## How classic-badi and idoc-types work
 
 Neither SE19 nor WE31/WE30 has an ADT editor or a remote-enabled API. The
 extensions write the steps those transactions take into a temporary report in
