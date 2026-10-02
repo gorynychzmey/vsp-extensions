@@ -1,0 +1,28 @@
+# The lint gate: correctness linters only, as vsp's own gate.
+version: "2"
+
+linters:
+  default: none
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+  settings:
+    errcheck:
+      # An unchecked single-value type assertion panics on the first
+      # unexpected SAP answer. `v, _ := x.(T)` stays fine.
+      check-type-assertions: true
+    govet:
+      enable:
+        - nilness
+        - unusedwrite
+    staticcheck:
+      checks:
+        - "SA*"
+        - "-SA1019"
+
+formatters:
+  enable:
+    - gofmt

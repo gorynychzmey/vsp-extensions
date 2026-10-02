@@ -1,0 +1,65 @@
+name: Release
+
+# A tag v* builds vspx for every platform and publishes the binaries with
+# their checksums as a GitHub release.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target:
+          - windows/amd64
+          - windows/arm64
+          - linux/amd64
+          - linux/arm64
+          - darwin/amd64
+          - darwin/arm64
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      # Deliberately not stripped (-s -w): stripped Go binaries are what
+      # Microsoft Defender's machine-learning heuristic took for
+      # Trojan:Win32/Wacatac.B!ml in vsp (oisee/vibing-steampunk#204).
+      - name: Build
+        env:
+          TARGET: ${{ matrix.target }}
+          VERSION: ${{ github.ref_name }}
+        run: |
+          GOOS=${TARGET%/*}
+          GOARCH=${TARGET#*/}
+          ext=""
+          [ "$GOOS" = windows ] && ext=.exe
+          core=$(go list -m -f '{{if .Replace}}{{.Replace.Path}}@{{.Replace.Version}}{{else}}{{.Path}}@{{.Version}}{{end}}' github.com/oisee/vibing-steampunk)
+          mkdir -p dist
+          GOOS=$GOOS GOARCH=$GOARCH CGO_ENABLED=0 go build -trimpath \
+            -ldflags "-X main.Version=$VERSION -X main.Commit=${GITHUB_SHA::7} -X main.BuildDate=$(date -u +%Y-%m-%dT%H:%M:%SZ) -X github.com/gorynychzmey/vsp-extensions/internal/version.Version=$VERSION" \
+            -o "dist/vspx-$VERSION-$GOOS-$GOARCH$ext" ./cmd/vspx
+          echo "vsp core: $core" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vspx-${{ strategy.job-index }}
+          path: dist/*
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - run: cd dist && sha256sum vspx-* > checksums.txt
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true

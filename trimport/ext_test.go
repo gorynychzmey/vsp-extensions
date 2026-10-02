@@ -61,7 +61,8 @@ func TestCheckAllowed(t *testing.T) {
 func TestHandleImportRefusesADestinationOverride(t *testing.T) {
 	env := envWith(adt.SafetyConfig{EnableTransports: true}, map[string]any{"allow": true}, false)
 	res, err := handleImport(context.Background(), env, "D11K900001", map[string]any{"host": "10.0.0.1"})
-	if err != nil || !res.IsError || !strings.Contains(res.Content[0].(mcp.TextContent).Text, "own system") {
+	text, _ := res.Content[0].(mcp.TextContent)
+	if err != nil || !res.IsError || !strings.Contains(text.Text, "own system") {
 		t.Errorf("host override: %+v %v", res, err)
 	}
 }

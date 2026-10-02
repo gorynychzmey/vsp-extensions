@@ -1,0 +1,49 @@
+name: Nightly
+
+# Builds and tests the extensions against the newest vsp core every night, so
+# a change upstream that breaks them shows up before the next release does.
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  core:
+    name: against ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    # Upstream main has no extension API until oisee/vibing-steampunk#291 is
+    # merged; until then its row is informational.
+    continue-on-error: ${{ matrix.experimental }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: upstream main
+            repo: oisee/vibing-steampunk
+            ref: main
+            experimental: true
+          - name: extension API branch
+            repo: gorynychzmey/vibing-steampunk
+            ref: feat/mcpext-env
+            experimental: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ matrix.repo }}
+          ref: ${{ matrix.ref }}
+          path: core
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: core/go.mod
+      - name: Use the checked-out core
+        run: |
+          go mod edit -replace github.com/oisee/vibing-steampunk=./core
+          go mod tidy
+          echo "core: ${{ matrix.repo }}@$(git -C core rev-parse --short HEAD)" >> "$GITHUB_STEP_SUMMARY"
+      - run: go build ./...
+      - run: go vet ./...
+      - run: go test -shuffle=on ./...

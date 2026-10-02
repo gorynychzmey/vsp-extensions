@@ -200,7 +200,8 @@ func TestWriteFormCreatesWithPackage(t *testing.T) {
 		t.Fatalf("create %+v %v", res, err)
 	}
 	p := ws.calls[1].params
-	content, _ := base64.StdEncoding.DecodeString(p["contentBase64"].(string))
+	encoded, _ := p["contentBase64"].(string)
+	content, _ := base64.StdEncoding.DecodeString(encoded)
 	if p["type"] != "FORM" || p["package"] != "$TMP" || string(content) != "<form/>" {
 		t.Errorf("sent %v", p)
 	}

@@ -1,0 +1,71 @@
+name: CI
+
+# Every push and pull request: build, vet, test, lint the Go code, check the
+# ABAP with abaplint, and cross-compile vspx. Nothing here talks to a SAP
+# system.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: build, vet, test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - run: go build ./...
+      - run: go vet ./...
+      - run: go test -race -shuffle=on ./...
+
+  lint:
+    name: golangci-lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      # The version vsp's own gate pins, so both judge code alike.
+      - uses: golangci/golangci-lint-action@v8
+        with:
+          version: v2.13.2
+
+  abaplint:
+    name: abaplint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # Checked against abaplint/deps (SAP's objects), ZADT_VSP's own source
+      # and the stubs in abap/stubs.
+      - run: npx -y @abaplint/cli@2 abaplint.json
+        working-directory: abap
+
+  cross:
+    name: cross-compile
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - run: |
+          for target in windows/amd64 linux/amd64 linux/arm64 darwin/arm64; do
+            GOOS=${target%/*} GOARCH=${target#*/} go build -o /dev/null ./cmd/vspx || exit 1
+          done

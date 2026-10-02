@@ -43,7 +43,8 @@ func (s *fakeSystem) call(_ context.Context, fm string, in rfc.Params) (exports,
 		s.imported = true
 		s.importArgs = in
 		var reqs []map[string]any
-		for _, r := range in["REQUESTS"].([]map[string]any) {
+		requests, _ := in["REQUESTS"].([]map[string]any)
+		for _, r := range requests {
 			reqs = append(reqs, map[string]any{"REQUEST": r["REQUEST"], "RETCODE": s.perRequest})
 		}
 		return fakeExports{
