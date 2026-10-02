@@ -5,6 +5,7 @@ package main
 import (
 	"github.com/gorynychzmey/vsp-extensions/idoc"
 	"github.com/gorynychzmey/vsp-extensions/sxci"
+	"github.com/gorynychzmey/vsp-extensions/trimport"
 	"github.com/oisee/vibing-steampunk/pkg/vsp"
 )
 
@@ -17,5 +18,5 @@ var (
 
 func main() {
 	vsp.Version, vsp.Commit, vsp.BuildDate = Version, Commit, BuildDate
-	vsp.Run(sxci.New(), idoc.New())
+	vsp.Run(sxci.New(), idoc.New(), trimport.New())
 }

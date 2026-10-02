@@ -12,6 +12,7 @@ and safety switch of vsp works unchanged, and `SAP()` gains the actions below.
 |---|---|---|
 | `classic-badi` | `create`/`delete SXCI` | Classic BAdI implementations (SE19), with their class and filters |
 | `idoc-types` | `read`/`create`/`edit`/`delete SEGM`, `… IEXT` | IDoc segment types (WE31) and extensions of basic types (WE30), including release handling |
+| `transport-import` | `import TRANSPORT`, `vspx transport import` | Imports released requests into the connected system, as STMS_IMPORT does there; synchronous or as a background task |
 
 `SAP(action="help")` lists them with examples; `vspx --version` names the
 extensions and their versions.
@@ -31,6 +32,27 @@ They therefore need vsp's RFC connection (`rfc_host`/`rfc_sysnr` in
 Every write goes through vsp's own gates: `--read-only` refuses it before
 the handler runs, `--disallowed-ops`, `--allowed-packages` and the
 transportable-edit policy apply as for a built-in write.
+
+## Transport import
+
+The import calls `CTS_API_IMPORT_CHANGE_REQUEST` in the connected system
+itself, so it always imports there and nowhere else. It is off unless the
+system's entry in `.vsp.json` allows it:
+
+```json
+{"systems": {"qas": {"enable_transports": true, "transport_read_only": true,
+  "allowed_transports": ["DEVK*"],
+  "extensions": {"transport-import": {"allow": true}}}}}
+```
+
+with the MCP server started as `vspx -s qas --disallowed-ops CDUAWLT`.
+
+It is a transport operation: it needs `enable_transports`, and
+`--read-only`, `--disallowed-ops X` and `allowed_transports` apply.
+`transport_read_only` guards the requests themselves (create, change,
+release) and does not refuse an import. A quality or production system that
+should take imports and nothing else runs as above instead of `--read-only`:
+`--disallowed-ops CDUAWLT` refuses every other change and every execution.
 
 ## Build
 
