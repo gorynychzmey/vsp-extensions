@@ -30,13 +30,13 @@ jobs:
             ref: feat/mcpext-env
             experimental: false
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
+      - uses: actions/checkout@v5
         with:
           repository: ${{ matrix.repo }}
           ref: ${{ matrix.ref }}
           path: core
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version-file: core/go.mod
       - name: Use the checked-out core
