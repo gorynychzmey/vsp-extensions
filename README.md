@@ -61,7 +61,25 @@ should take imports and nothing else runs as above instead of `--read-only`:
 go build -o vspx ./cmd/vspx
 ```
 
-Go 1.26 or later.
+Go 1.26 or later. Release binaries are on the
+[releases page](https://github.com/gorynychzmey/vsp-extensions/releases).
+
+The extension API is proposed upstream
+([oisee/vibing-steampunk#291](https://github.com/oisee/vibing-steampunk/issues/291));
+until it is merged, `go.mod` takes vsp from the branch that carries it
+(`gorynychzmey/vibing-steampunk`, `feat/mcpext-env`). To build against a
+local vsp checkout, put a `go.work` next to `go.mod`:
+
+```
+go 1.26.0
+
+use .
+
+replace github.com/oisee/vibing-steampunk => ../vibing-steampunk
+```
+
+CI builds every push and pull request, and every night against vsp's newest
+core.
 
 ## License
 
