@@ -14,6 +14,7 @@ and safety switch of vsp works unchanged, and `SAP()` gains the actions below.
 | `classic-badi` | `create`/`delete SXCI` | Classic BAdI implementations (SE19), with their class and filters |
 | `idoc-types` | `read`/`create`/`edit`/`delete SEGM`, `… IEXT` | IDoc segment types (WE31) and extensions of basic types (WE30), including release handling |
 | `transport-import` | `import TRANSPORT`, `vspx transport import` | Imports released requests into the connected system, as STMS_IMPORT does there; synchronous or as a background task |
+| `cts-plus` | `read`/`edit`/`release`/`import CTSREQUEST`, `read CTSQUEUE` | Non-ABAP requests (CTS+, e.g. SAP PI) on the domain controller: CTS project, release, import queue, import into a system of the domain |
 
 `SAP(action="help")` lists them with examples; `vspx --version` names the
 extensions and their versions.
@@ -54,6 +55,38 @@ It is a transport operation: it needs `enable_transports`, and
 release) and does not refuse an import. A quality or production system that
 should take imports and nothing else runs as above instead of `--read-only`:
 `--disallowed-ops CDUAWLT` refuses every other change and every execution.
+
+## CTS+ (non-ABAP requests)
+
+A request of a non-ABAP system -- `D22K…` for an SAP PI system `D22` --
+lives in the Transport Organizer of the domain controller, but belongs to its
+source system, and the classic `TR_*` function modules refuse to change it
+there. `cts-plus` runs on a server connected to the domain controller and
+uses the `CTS_WBO_*` and `SCTS_API_*` function modules over classic RFC, the
+path the CTS Organizer Web UI and STMS take:
+
+```text
+SAP(action="read",    target="CTSREQUEST D22K900240")
+SAP(action="release", target="CTSREQUEST D22K900240", params={"project": "DEV_P00005"})
+SAP(action="read",    target="CTSQUEUE QAS", params={"request": "D22K900240"})
+SAP(action="import",  target="CTSREQUEST D22K900240", params={"system": "QAS"})
+```
+
+A PI export (ESR or Integration Directory) leaves the request without a CTS
+project when the PI client has no way to name one; when the domain makes the
+project mandatory, CTS refuses the release. `release` with `project` assigns
+it first (`edit` does only that), and reads the request back after each step.
+
+Assigning a project and releasing change the request: they need
+`enable_transports` and a request in `allowed_transports`, and
+`transport_read_only` refuses them. A request of the controller itself is
+left to the built-in transport actions. Importing is off unless the system
+lists the target systems:
+
+```json
+{"systems": {"dev": {"enable_transports": true, "allowed_transports": ["DEVK*", "D22K*"],
+  "extensions": {"cts-plus": {"import_systems": ["Q22"]}}}}}
+```
 
 ## Build
 
