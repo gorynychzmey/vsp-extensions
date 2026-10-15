@@ -130,7 +130,9 @@ func TestRowEditSource(t *testing.T) {
 		"CALL FUNCTION 'ENQUEUE_E_TABLE'",
 		"gs_row-fmodul = '/PAR/RF_PACK_CREA_TO_PAI'.",
 		"PERFORM check_field USING '/SCWM/TSTEP_FLOW' 'FMODUL' gs_row-fmodul.",
-		"iv_order = 'TR-REQ' iv_with_dialog = ' '",
+		"iv_order = 'TR-REQ' iv_with_dialog = 'D'",
+		"SELECT SINGLE trkorr FROM e071k INTO gv_found",
+		"'the key is not in the task after recording'",
 		"gs_e071k-tabkey = gv_varkey.",
 		"UPDATE /SCWM/TSTEP_FLOW FROM gs_row.",
 		"COMMIT WORK AND WAIT.",
@@ -139,9 +141,14 @@ func TestRowEditSource(t *testing.T) {
 			t.Errorf("source lacks %q", want)
 		}
 	}
-	// The recording comes before the update, so a refused key changes nothing.
-	if strings.Index(src, "TRINT_OBJECTS_CHECK_AND_INSERT") > strings.Index(src, "UPDATE /SCWM/TSTEP_FLOW") {
-		t.Error("the row is updated before its key is recorded")
+	// The recording, and reading it back, come before the update, so a key
+	// that was not recorded changes nothing.
+	if strings.Index(src, "FROM e071k") > strings.Index(src, "UPDATE /SCWM/TSTEP_FLOW") {
+		t.Error("the row is updated before its recorded key is read back")
+	}
+	// ' ' is a check mode of TRINT_OBJECTS_CHECK_AND_INSERT: it records nothing.
+	if strings.Contains(src, "iv_with_dialog = ' '") {
+		t.Error("the recording runs in check mode")
 	}
 	for i, line := range strings.Split(src, "\n") {
 		if len(line) > 255 {

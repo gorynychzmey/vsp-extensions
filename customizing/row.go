@@ -416,8 +416,14 @@ func applyRowLog(res *RowResult, lines []string) error {
 
 // rowEditSource is the report: read the row, refuse it if it changed since
 // it was read, lock it as SM30 does, check the new values against their
-// check tables and fixed values, record the key in the request, update,
-// commit. A failure before the commit rolls everything back.
+// check tables and fixed values, record the key in the request and read the
+// entry back, update, commit. A failure before the commit rolls everything
+// back.
+//
+// TRINT_OBJECTS_CHECK_AND_INSERT inserts without a dialog only with
+// iv_with_dialog 'D'; ' ' and 'R' are its check modes, which record nothing
+// and still return without an error. The entry is therefore read back from
+// E071K before the row changes: it is written directly, in this LUW.
 func rowEditSource(prog, tab string, key []field, keyValues map[string]string, set []field,
 	before, values map[string]string, request, tabkey string) string {
 	var b strings.Builder
@@ -429,7 +435,8 @@ func rowEditSource(prog, tab string, key []field, keyValues map[string]string, s
       gs_e071k LIKE LINE OF gt_e071k,
       gv_order TYPE trkorr,
       gv_task  TYPE trkorr,
-      gv_varkey TYPE rstable-varkey.
+      gv_varkey TYPE rstable-varkey,
+      gv_found TYPE trkorr.
 `, tab)
 	b.WriteString(rowCommon)
 	b.WriteString("\nSTART-OF-SELECTION.\n")
@@ -460,12 +467,21 @@ func rowEditSource(prog, tab string, key []field, keyValues map[string]string, s
   gs_e071k-mastertype = 'TABU'. gs_e071k-mastername = %[1]s. gs_e071k-tabkey = gv_varkey.
   APPEND gs_e071k TO gt_e071k.
   CALL FUNCTION 'TRINT_OBJECTS_CHECK_AND_INSERT'
-    EXPORTING iv_order = %[2]s iv_with_dialog = ' ' iv_send_message = ' '
+    EXPORTING iv_order = %[2]s iv_with_dialog = 'D' iv_send_message = ' '
     IMPORTING ev_order = gv_order ev_task = gv_task
     CHANGING ct_ko200 = gt_ko200 ct_e071k = gt_e071k
     EXCEPTIONS OTHERS = 1.
   IF sy-subrc <> 0.
     PERFORM fail USING 'Recording the key in the request (TRINT_OBJECTS_CHECK_AND_INSERT)'.
+  ENDIF.
+  IF gv_task IS INITIAL.
+    PERFORM fail_text USING 'Recording the key in the request' 'CTS named no task to record in'.
+  ENDIF.
+  SELECT SINGLE trkorr FROM e071k INTO gv_found
+    WHERE trkorr = gv_task AND pgmid = 'R3TR' AND object = 'TABU'
+      AND objname = %[1]s AND tabkey = gv_varkey.
+  IF sy-subrc <> 0.
+    PERFORM fail_text USING 'Recording the key in the request' 'the key is not in the task after recording'.
   ENDIF.
   UPDATE %[3]s FROM gs_row.
   IF sy-subrc <> 0 OR sy-dbcnt <> 1.
