@@ -34,7 +34,7 @@ var ErrJobNotEnded = errors.New("the background job has not ended")
 
 // Prefixes are the names the extensions give their temporary reports. Only
 // these, followed by the creation time, are ever swept.
-var Prefixes = []string{"ZTEMP_SXCI_", "ZTEMP_SXCD_", "ZTEMP_SEGM_", "ZTEMP_IEXT_"}
+var Prefixes = []string{"ZTEMP_SXCI_", "ZTEMP_SXCD_", "ZTEMP_SEGM_", "ZTEMP_IEXT_", "ZTEMP_TROW_"}
 
 // maxAge is how old a temporary report must be before a later run takes it
 // for one left behind. No job waits nearly this long.

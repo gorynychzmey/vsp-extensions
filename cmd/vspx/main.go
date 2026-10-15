@@ -4,6 +4,7 @@ package main
 
 import (
 	"github.com/gorynychzmey/vsp-extensions/ctsplus"
+	"github.com/gorynychzmey/vsp-extensions/customizing"
 	"github.com/gorynychzmey/vsp-extensions/forms"
 	"github.com/gorynychzmey/vsp-extensions/idoc"
 	"github.com/gorynychzmey/vsp-extensions/sxci"
@@ -20,5 +21,5 @@ var (
 
 func main() {
 	vsp.Version, vsp.Commit, vsp.BuildDate = Version, Commit, BuildDate
-	vsp.Run(forms.New(), sxci.New(), idoc.New(), trimport.New(), ctsplus.New())
+	vsp.Run(forms.New(), sxci.New(), idoc.New(), trimport.New(), ctsplus.New(), customizing.New())
 }

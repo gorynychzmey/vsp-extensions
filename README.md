@@ -15,6 +15,7 @@ and safety switch of vsp works unchanged, and `SAP()` gains the actions below.
 | `idoc-types` | `read`/`create`/`edit`/`delete SEGM`, `… IEXT` | IDoc segment types (WE31) and extensions of basic types (WE30), including release handling |
 | `transport-import` | `import TRANSPORT`, `vspx transport import` | Imports released requests into the connected system, as STMS_IMPORT does there; synchronous or as a background task |
 | `cts-plus` | `read`/`edit`/`release`/`import CTSREQUEST`, `read CTSQUEUE` | Non-ABAP requests (CTS+, e.g. SAP PI) on the domain controller: CTS project, release, import queue, import into a system of the domain |
+| `customizing` | `read`/`edit TABROW` | Rows of client-specific customizing tables (delivery class C, G, E) changed as SM30 does: key recorded in a customizing request, row updated under the table lock, values checked against check tables; only listed tables |
 
 `SAP(action="help")` lists them with examples; `vspx --version` names the
 extensions and their versions.
@@ -87,6 +88,34 @@ lists the target systems:
 {"systems": {"dev": {"enable_transports": true, "allowed_transports": ["DEVK*", "D22K*"],
   "extensions": {"cts-plus": {"import_systems": ["Q22"]}}}}}
 ```
+
+## Customizing rows
+
+`customizing` changes fields of an existing row of a client-specific
+customizing table, the way SM30 does it without its screens. In one
+background job it reads the row and refuses it if it changed since vsp read
+it, takes the table lock (`ENQUEUE_E_TABLE`), checks the new values with
+`DDUT_INPUT_CHECK` (fixed values, check tables, the rest of the row as
+context), records `R3TR TABU` with the row's key in the request
+(`TRINT_OBJECTS_CHECK_AND_INSERT`, which also refuses a key in SAP's area of
+a delivery class E table), updates the row and commits. Any failure before
+the commit rolls everything back.
+
+```text
+SAP(action="read", target="TABROW ZTAB", params={"key": {"KEY1": "A"}})
+SAP(action="edit", target="TABROW ZTAB", params={"key": {"KEY1": "A"}, "set": {"FIELD": "new"}, "transport": "DEVK900001"})
+```
+
+Only the tables a system lists may change, and only character-like fields:
+
+```json
+{"systems": {"dev": {"enable_transports": true,
+  "extensions": {"customizing": {"tables": ["ZTAB"]}}}}}
+```
+
+The change is an update (`--disallowed-ops U` and `--read-only` refuse it) and
+records into a customizing request, so it needs `enable_transports`, the
+request in `allowed_transports`, and no `transport_read_only`.
 
 ## Build
 
