@@ -21,5 +21,6 @@ var (
 
 func main() {
 	vsp.Version, vsp.Commit, vsp.BuildDate = Version, Commit, BuildDate
+	exitWithParent()
 	vsp.Run(forms.New(), sxci.New(), idoc.New(), trimport.New(), ctsplus.New(), customizing.New())
 }
