@@ -3,7 +3,7 @@ module github.com/gorynychzmey/vsp-extensions
 go 1.26.0
 
 require (
-	github.com/mark3labs/mcp-go v1.1.0
+	github.com/mark3labs/mcp-go v1.3.0
 	github.com/oisee/open-rfc-go v0.2.0
 	github.com/oisee/vibing-steampunk v0.0.0
 	github.com/spf13/cobra v1.10.2
