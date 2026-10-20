@@ -3,6 +3,9 @@
 package main
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/gorynychzmey/vsp-extensions/ctsplus"
 	"github.com/gorynychzmey/vsp-extensions/customizing"
 	"github.com/gorynychzmey/vsp-extensions/forms"
@@ -22,5 +25,9 @@ var (
 func main() {
 	vsp.Version, vsp.Commit, vsp.BuildDate = Version, Commit, BuildDate
 	exitWithParent()
+	if err := applyProfile(); err != nil {
+		fmt.Fprintf(os.Stderr, "vspx: %v\n", err)
+		os.Exit(2)
+	}
 	vsp.Run(forms.New(), sxci.New(), idoc.New(), trimport.New(), ctsplus.New(), customizing.New())
 }
