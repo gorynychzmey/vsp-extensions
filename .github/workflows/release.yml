@@ -1,7 +1,12 @@
 name: Release
 
-# A tag v* builds vspx for every platform and publishes the binaries with
-# their checksums as a GitHub release.
+# A tag vX.Y.Z.S builds vspx for every platform and publishes the binaries
+# with their checksums as a GitHub release.
+#
+# X.Y.Z is the vsp release the core is based on (the newest upstream tag
+# reachable from the core commit that go.mod replaces vsp with); S counts the
+# vspx builds on that base and starts again at 1 with every new base. The
+# release refuses a tag whose X.Y.Z does not match the core.
 on:
   push:
     tags: ["v*"]
@@ -10,7 +15,51 @@ permissions:
   contents: write
 
 jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      core: ${{ steps.core.outputs.describe }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - name: Tag format
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          if ! [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::tag $TAG is not vX.Y.Z.S"
+            exit 1
+          fi
+      # The fork carries the core commit, upstream carries the version tags.
+      - name: Core base
+        id: core
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          repl=$(go list -m -f '{{if .Replace}}{{.Replace.Path}}@{{.Replace.Version}}{{end}}' github.com/oisee/vibing-steampunk)
+          if [ -z "$repl" ] || [ "${repl#*@}" = "" ]; then
+            echo "::error::go.mod does not replace vsp with a module version"
+            exit 1
+          fi
+          origin=$(go mod download -json "$repl")
+          url=$(jq -r .Origin.URL <<<"$origin")
+          sha=$(jq -r .Origin.Hash <<<"$origin")
+          git init -q core
+          git -C core fetch -q --filter=blob:none "$url" "$sha"
+          git -C core fetch -q --filter=blob:none --no-tags https://github.com/oisee/vibing-steampunk "+refs/tags/v*:refs/tags/v*"
+          describe=$(git -C core describe --tags --match 'v[0-9]*.[0-9]*.[0-9]*' "$sha")
+          base=${describe%%-*}
+          if [ "${TAG%.*}" != "$base" ]; then
+            echo "::error::tag $TAG does not fit the core: it is based on $base ($describe), so the tag must be $base.<n>"
+            exit 1
+          fi
+          echo "describe=$describe" >> "$GITHUB_OUTPUT"
+          echo "vsp core: $url@$sha = $describe" >> "$GITHUB_STEP_SUMMARY"
+
   build:
+    needs: check
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -34,24 +83,23 @@ jobs:
         env:
           TARGET: ${{ matrix.target }}
           VERSION: ${{ github.ref_name }}
+          CORE: ${{ needs.check.outputs.core }}
         run: |
           GOOS=${TARGET%/*}
           GOARCH=${TARGET#*/}
           ext=""
           [ "$GOOS" = windows ] && ext=.exe
-          core=$(go list -m -f '{{if .Replace}}{{.Replace.Path}}@{{.Replace.Version}}{{else}}{{.Path}}@{{.Version}}{{end}}' github.com/oisee/vibing-steampunk)
           mkdir -p dist
           GOOS=$GOOS GOARCH=$GOARCH CGO_ENABLED=0 go build -trimpath \
-            -ldflags "-X main.Version=$VERSION -X main.Commit=${GITHUB_SHA::7} -X main.BuildDate=$(date -u +%Y-%m-%dT%H:%M:%SZ) -X github.com/gorynychzmey/vsp-extensions/internal/version.Version=$VERSION" \
+            -ldflags "-X main.Version=$VERSION -X 'main.Commit=${GITHUB_SHA::7}, core $CORE' -X main.BuildDate=$(date -u +%Y-%m-%dT%H:%M:%SZ) -X github.com/gorynychzmey/vsp-extensions/internal/version.Version=$VERSION" \
             -o "dist/vspx-$VERSION-$GOOS-$GOARCH$ext" ./cmd/vspx
-          echo "vsp core: $core" >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         with:
           name: vspx-${{ strategy.job-index }}
           path: dist/*
 
   publish:
-    needs: build
+    needs: [check, build]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
@@ -63,3 +111,4 @@ jobs:
         with:
           files: dist/*
           generate_release_notes: true
+          body: "vsp core: ${{ needs.check.outputs.core }}"

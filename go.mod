@@ -51,4 +51,4 @@ require (
 	modernc.org/sqlite v1.59.0 // indirect
 )
 
-replace github.com/oisee/vibing-steampunk => github.com/gorynychzmey/vibing-steampunk v0.0.0-20261002123050-aba90443b852
+replace github.com/oisee/vibing-steampunk => github.com/gorynychzmey/vibing-steampunk v1.6.1-0.20261020124304-e041d2f2846e

@@ -128,9 +128,10 @@ Go 1.26 or later. Release binaries are on the
 
 The extension API is proposed upstream
 ([oisee/vibing-steampunk#291](https://github.com/oisee/vibing-steampunk/issues/291));
-until it is merged, `go.mod` takes vsp from the branch that carries it
-(`gorynychzmey/vibing-steampunk`, `feat/mcpext-env`). To build against a
-local vsp checkout, put a `go.work` next to `go.mod`:
+until it is merged, `go.mod` takes vsp from a commit of
+`gorynychzmey/vibing-steampunk` (branch `local/vspx`: the extension API plus
+fixes that are still open upstream). To build against a local vsp checkout,
+put a `go.work` next to `go.mod`:
 
 ```
 go 1.26.0
@@ -142,6 +143,23 @@ replace github.com/oisee/vibing-steampunk => ../vibing-steampunk
 
 CI builds every push and pull request, and every night against vsp's newest
 core.
+
+## Releases
+
+Releases are numbered `vX.Y.Z.S`. `X.Y.Z` is the vsp release the core is
+based on, `S` counts the vspx builds on that base and starts again at 1 with
+every new base: `v2.60.0.1`, `v2.60.0.2`, …, `v2.61.0.1`. `vspx --version`
+names the exact core commit.
+
+To release:
+
+1. Push the core commit to `gorynychzmey/vibing-steampunk` and tag it
+   `vspx-core/X.Y.Z.S`, so the commit stays reachable.
+2. Point `go.mod` at it:
+   `GOWORK=off go mod edit -replace github.com/oisee/vibing-steampunk=github.com/gorynychzmey/vibing-steampunk@<sha>`,
+   then `GOWORK=off go mod tidy`, and commit.
+3. Tag `vX.Y.Z.S` and push the tag. The release workflow refuses a tag whose
+   `X.Y.Z` is not the base of that core.
 
 ## License
 
