@@ -52,7 +52,7 @@ table lock, the new values checked against check tables and fixed values. Runs a
   SAP(action="read", target="TABROW /SCWM/TSTEP_FLOW", params={"key": {"APPLIC": "01", "PRES_PRF": "PARI",
       "LTRANS": "PAHRPA", "STEP": "PAPHIN", "FCODE": "ENTER"}})
   SAP(action="edit", target="TABROW /SCWM/TSTEP_FLOW", params={"key": {...},
-      "set": {"FMODUL": "/PAR/RF_PACK_CREA_TO_PAI"}, "transport": "A4HK900001"})
+      "set": {"FMODUL": "/XYZ/RF_PACK_CREA_TO_PAI"}, "transport": "A4HK900001"})
 "key" names every key field but the client; "set" the fields to change (character-like fields only);
 "transport" a modifiable customizing request or a task of one. Only existing rows are changed, and the
 row must not have changed since it was read. The answer shows the row before and after.

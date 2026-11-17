@@ -3,8 +3,8 @@
 // into the other systems of the transport domain -- the steps the CTS
 // Organizer Web UI and STMS take for a PI or other non-ABAP system.
 //
-// The server runs against the domain controller (for PI system D22 with
-// requests D22K..., the ABAP system whose TMS holds DOMAIN_D11). Every
+// The server runs against the domain controller (for PI system D02 with
+// requests D02K..., the ABAP system whose TMS holds DOMAIN_D01). Every
 // change is a transport operation (adt.OpTransport): it needs
 // --enable-transports, --read-only and --disallowed-ops X refuse it, and
 // allowed_transports limits the requests. Assigning a project and releasing
@@ -12,7 +12,7 @@
 // does not touch the request and is off unless the system names the target
 // systems it may import into:
 //
-//	{"systems": {"dev": {"extensions": {"cts-plus": {"import_systems": ["Q22"]}}}}}
+//	{"systems": {"dev": {"extensions": {"cts-plus": {"import_systems": ["Q02"]}}}}}
 package ctsplus
 
 import (
@@ -56,20 +56,20 @@ func (Extension) Actions() []mcpext.Action {
 }
 
 func (Extension) Help() string {
-	return `Non-ABAP requests (CTS+, e.g. PI requests D22K...) on the domain controller: read, assign the CTS
+	return `Non-ABAP requests (CTS+, e.g. PI requests D02K...) on the domain controller: read, assign the CTS
 project, release, import into a system of the transport domain -- over classic RFC, as the CTS
 Organizer Web UI and STMS do it. The classic TR_* function modules refuse these requests there.
-  SAP(action="read", target="CTSREQUEST D22K900240")                header, state, CTS project, attributes
-  SAP(action="edit", target="CTSREQUEST D22K900240", params={"project": "D11_P00005"})
-  SAP(action="release", target="CTSREQUEST D22K900240", params={"project": "D11_P00005"})
+  SAP(action="read", target="CTSREQUEST D02K900240")                header, state, CTS project, attributes
+  SAP(action="edit", target="CTSREQUEST D02K900240", params={"project": "D01_P00005"})
+  SAP(action="release", target="CTSREQUEST D02K900240", params={"project": "D01_P00005"})
       "project" is assigned first when the request has none (CTS refuses the release without one)
-  SAP(action="read", target="CTSQUEUE Q22", params={"request": "D22K900240"})   import queue; "status", "request" filter
-  SAP(action="import", target="CTSREQUEST D22K900240", params={"system": "Q22"})
+  SAP(action="read", target="CTSQUEUE Q02", params={"request": "D02K900240"})   import queue; "status", "request" filter
+  SAP(action="import", target="CTSREQUEST D02K900240", params={"system": "Q02"})
       "async": true returns a task (GET_ASYNC_RESULT); "domain" if the system is not in the controller's own domain
 edit, release and import need --enable-transports and a request in allowed_transports; edit and release
 are refused by transport_read_only. import is off unless the target is listed:
-"cts-plus": {"import_systems": ["Q22"]} under "extensions" in the system's .vsp.json entry.
-A typical chain after a PI export: release (with project) -> import into Q22 -> system import_status.`
+"cts-plus": {"import_systems": ["Q02"]} under "extensions" in the system's .vsp.json entry.
+A typical chain after a PI export: release (with project) -> import into Q02 -> system import_status.`
 }
 
 // gate applies what the core does not know about this extension: the
@@ -288,7 +288,7 @@ func handleImport(ctx context.Context, env mcpext.Env, name string, params map[s
 	}
 	system := strings.ToUpper(mcpext.String(params, "system"))
 	if !systemPattern.MatchString(system) {
-		return mcpext.Errorf(`import CTSREQUEST needs the target system: params={"system": "Q22"}`), nil
+		return mcpext.Errorf(`import CTSREQUEST needs the target system: params={"system": "Q02"}`), nil
 	}
 	domain := strings.ToUpper(mcpext.String(params, "domain"))
 	if domain != "" && !domainPattern.MatchString(domain) {

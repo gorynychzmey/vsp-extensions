@@ -23,7 +23,7 @@ func (f fakeExports) Table(name string) []map[string]any { return f.tables[name]
 // non-ABAP request, with what CTS does to it.
 type fakeOrganizer struct {
 	state, project, description string
-	// projectMandatory refuses a release without a project, as DOMAIN_D11 does.
+	// projectMandatory refuses a release without a project, as DOMAIN_D01 does.
 	projectMandatory bool
 	// modifyIgnored answers CTS_WBO_MODIFY_REQUEST with success and changes
 	// nothing, as CTS_WBO_MODIFY_REQUEST_ATTRS did.
@@ -45,13 +45,13 @@ func (o *fakeOrganizer) call(_ context.Context, fm string, in rfc.Params) (expor
 	ok := map[string]any{"TYPE": "", "MESSAGE": ""}
 	switch fm {
 	case "RFC_SYSTEM_INFO":
-		return fakeExports{scalars: map[string]any{"RFCSI_EXPORT": map[string]any{"RFCSYSID": "D11"}}}, nil
+		return fakeExports{scalars: map[string]any{"RFCSI_EXPORT": map[string]any{"RFCSYSID": "D01"}}}, nil
 	case "CTS_WBO_GET_REQUEST_DETAILS":
 		return fakeExports{scalars: map[string]any{
 			"RETURNCODE": ok,
 			"EXTPROJECT": "SAP_OP",
 			"REQUEST_DETAIL": map[string]any{"REQUEST": in["REQUESTID"], "STATE": o.state, "PROJECTID": o.project,
-				"DESCRIPTION": o.description, "TARSYSTEM": "Q22", "TRTYPE": "K", "OWNER": "DEV"},
+				"DESCRIPTION": o.description, "TARSYSTEM": "Q02", "TRTYPE": "K", "OWNER": "DEV"},
 		}, tables: map[string][]map[string]any{"ATTRIBUTES": {{"REQ_ATTR_NAME": "EXPTIMESTAMP", "REQ_ATTR_VALUE": "20261012133923"}}}}, nil
 	case "CTS_WBO_MODIFY_REQUEST":
 		if !o.modifyIgnored && in["SETPROJECT"] == "X" {
@@ -70,7 +70,7 @@ func (o *fakeOrganizer) call(_ context.Context, fm string, in rfc.Params) (expor
 		return fakeExports{scalars: map[string]any{"RETURNCODE": ok, "RC": "0"}}, nil
 	case "SCTS_API_IMP_GET_IMP_QUEUE":
 		return fakeExports{tables: map[string][]map[string]any{"TRANSPORT_ITEMS": {
-			{"ID": "D22K90023Z", "STATUS": "X", "PROJECTS": []any{map[string]any{"ID": "D11_P00005"}}},
+			{"ID": "D02K90023Z", "STATUS": "X", "PROJECTS": []any{map[string]any{"ID": "D01_P00005"}}},
 		}}}, nil
 	case "SCTS_API_IMPORT_TRANSP_ITEMS":
 		o.imported = true
@@ -105,11 +105,11 @@ func (o *fakeOrganizer) called(fm string) bool {
 // keeps the description, and confirms the request is released.
 func TestRelease_AssignsTheProjectFirst(t *testing.T) {
 	o := &fakeOrganizer{state: "CHANGEABLE", description: "VSP_CTSPLUS_TEST", projectMandatory: true}
-	r, err := release(context.Background(), o.call, "D22K900240", "d11_p00005")
+	r, err := release(context.Background(), o.call, "D02K900240", "d01_p00005")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !r.Released() || r.Project != "D11_P00005" || r.Description != "VSP_CTSPLUS_TEST" {
+	if !r.Released() || r.Project != "D01_P00005" || r.Description != "VSP_CTSPLUS_TEST" {
 		t.Errorf("released = %+v", r)
 	}
 	if got := o.args["CTS_WBO_MODIFY_REQUEST"]["SETDESCRIPTION"]; got != "" {
@@ -119,15 +119,15 @@ func TestRelease_AssignsTheProjectFirst(t *testing.T) {
 
 func TestRelease_WithoutProjectNamesTheMissingProject(t *testing.T) {
 	o := &fakeOrganizer{state: "CHANGEABLE", projectMandatory: true}
-	_, err := release(context.Background(), o.call, "D22K900240", "")
+	_, err := release(context.Background(), o.call, "D02K900240", "")
 	if err == nil || !strings.Contains(err.Error(), "SAP_CTS_PROJECT is mandatory") || !strings.Contains(err.Error(), `pass "project"`) {
 		t.Errorf("err = %v", err)
 	}
 }
 
 func TestRelease_AlreadyReleasedIsRefusedBeforeAnyChange(t *testing.T) {
-	o := &fakeOrganizer{state: "RELEASED", project: "D11_P00005"}
-	_, err := release(context.Background(), o.call, "D22K900240", "")
+	o := &fakeOrganizer{state: "RELEASED", project: "D01_P00005"}
+	_, err := release(context.Background(), o.call, "D02K900240", "")
 	if err == nil || !strings.Contains(err.Error(), "already released") || o.called("CTS_WBO_RELEASE_REQUEST") {
 		t.Errorf("err = %v, calls = %v", err, o.calls)
 	}
@@ -136,7 +136,7 @@ func TestRelease_AlreadyReleasedIsRefusedBeforeAnyChange(t *testing.T) {
 // A modify that answers success and changes nothing must not pass.
 func TestSetProject_ReadsTheRequestBack(t *testing.T) {
 	o := &fakeOrganizer{state: "CHANGEABLE", modifyIgnored: true}
-	_, err := setProjectChecked(context.Background(), o.call, "D22K900240", "D11_P00005")
+	_, err := setProjectChecked(context.Background(), o.call, "D02K900240", "D01_P00005")
 	if err == nil || !strings.Contains(err.Error(), "reported success") {
 		t.Errorf("err = %v", err)
 	}
@@ -144,21 +144,21 @@ func TestSetProject_ReadsTheRequestBack(t *testing.T) {
 
 func TestSetProject_RefusesWhatIsNotAProject(t *testing.T) {
 	o := &fakeOrganizer{state: "CHANGEABLE"}
-	if _, err := setProjectChecked(context.Background(), o.call, "D22K900240", "X' OR '1'='1"); err == nil || len(o.calls) != 0 {
+	if _, err := setProjectChecked(context.Background(), o.call, "D02K900240", "X' OR '1'='1"); err == nil || len(o.calls) != 0 {
 		t.Errorf("err = %v, calls = %v", err, o.calls)
 	}
 }
 
 func TestImport_ReportsTheStepsOfTheTargetOnly(t *testing.T) {
 	o := &fakeOrganizer{
-		logBefore: []saprfc.ImportStep{{Step: "E", RetCode: "0000", Time: "20261012153923", Target: "D22"}},
+		logBefore: []saprfc.ImportStep{{Step: "E", RetCode: "0000", Time: "20261012153923", Target: "D02"}},
 		logAfter: []saprfc.ImportStep{
-			{Step: "E", RetCode: "0000", Time: "20261012153923", Target: "D22"},
-			{Step: "I", RetCode: "0000", Time: "20261012154041", Target: "Q22"},
-			{Step: "T", RetCode: "0004", Time: "20261012154050", Target: "Q22"},
+			{Step: "E", RetCode: "0000", Time: "20261012153923", Target: "D02"},
+			{Step: "I", RetCode: "0000", Time: "20261012154041", Target: "Q02"},
+			{Step: "T", RetCode: "0004", Time: "20261012154050", Target: "Q02"},
 		},
 	}
-	res, err := importItems(context.Background(), o.call, o.log, []string{"D22K900240"}, "Q22", "")
+	res, err := importItems(context.Background(), o.call, o.log, []string{"D02K900240"}, "Q02", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -167,22 +167,22 @@ func TestImport_ReportsTheStepsOfTheTargetOnly(t *testing.T) {
 		t.Errorf("result = %+v", res)
 	}
 	sys, _ := o.args["SCTS_API_IMPORT_TRANSP_ITEMS"]["IMPORT_SYSTEM"].(map[string]any)
-	if sys["NAME"] != "Q22" {
+	if sys["NAME"] != "Q02" {
 		t.Errorf("IMPORT_SYSTEM = %v", sys)
 	}
 }
 
 func TestImport_AlertIsAnError(t *testing.T) {
 	o := &fakeOrganizer{importAlert: map[string]any{"RETURN_CODE": 8, "MESSAGE": "not in queue", "MESSAGE_ID": "SCTS_API", "MESSAGE_NO": "012"}}
-	res, err := importItems(context.Background(), o.call, o.log, []string{"D22K900240"}, "Q22", "")
+	res, err := importItems(context.Background(), o.call, o.log, []string{"D02K900240"}, "Q02", "")
 	if err == nil || !strings.Contains(err.Error(), "not in queue") || res.Imported {
 		t.Errorf("err = %v, res = %+v", err, res)
 	}
 }
 
 func TestImport_ReturnCode8IsAnError(t *testing.T) {
-	o := &fakeOrganizer{logAfter: []saprfc.ImportStep{{Step: "I", RetCode: "0008", Time: "20261012154041", Target: "Q22"}}}
-	_, err := importItems(context.Background(), o.call, o.log, []string{"D22K900240"}, "Q22", "")
+	o := &fakeOrganizer{logAfter: []saprfc.ImportStep{{Step: "I", RetCode: "0008", Time: "20261012154041", Target: "Q02"}}}
+	_, err := importItems(context.Background(), o.call, o.log, []string{"D02K900240"}, "Q02", "")
 	if err == nil || !strings.Contains(err.Error(), "0008") {
 		t.Errorf("err = %v", err)
 	}
@@ -190,7 +190,7 @@ func TestImport_ReturnCode8IsAnError(t *testing.T) {
 
 func TestQueue_ReadsProjects(t *testing.T) {
 	o := &fakeOrganizer{}
-	items, err := queue(context.Background(), o.call, "Q22", "")
+	items, err := queue(context.Background(), o.call, "Q02", "")
 	if err != nil || len(items) != 1 || items[0].Status != "X" || len(items[0].Projects) != 1 {
 		t.Errorf("items = %+v, err = %v", items, err)
 	}
@@ -198,10 +198,10 @@ func TestQueue_ReadsProjects(t *testing.T) {
 
 func TestRefuseOwnRequest(t *testing.T) {
 	o := &fakeOrganizer{}
-	if err := refuseOwnRequest(context.Background(), o.call, "D11K900001"); err == nil {
+	if err := refuseOwnRequest(context.Background(), o.call, "D01K900001"); err == nil {
 		t.Error("an ABAP request of the controller itself was taken")
 	}
-	if err := refuseOwnRequest(context.Background(), o.call, "D22K900240"); err != nil {
+	if err := refuseOwnRequest(context.Background(), o.call, "D02K900240"); err != nil {
 		t.Errorf("non-ABAP request refused: %v", err)
 	}
 }

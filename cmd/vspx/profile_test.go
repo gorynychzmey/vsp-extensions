@@ -6,10 +6,10 @@ import (
 )
 
 const profileJSON = `{"systems": {
-  "d11": {"sysid": "D11", "url": "https://d11.example:44314", "user": "dev", "client": "100", "language": "DE",
+  "d01": {"sysid": "D01", "url": "https://d01.example:44300", "user": "dev", "client": "100", "language": "DE",
           "mode": "hyperfocused", "enable_transports": true, "allowed_packages": ["Z*", "$TMP"],
-          "allowed_transports": ["D11K*", "D22K*"], "cts_project": "D11_P00005", "transport_target": "/PAR/"},
-  "q11-200": {"sysid": "Q11", "url": "https://q11.example", "user": "dev", "client": "200",
+          "allowed_transports": ["D01K*", "D02K*"], "cts_project": "D01_P00005", "transport_target": "/XYZ/"},
+  "q01-200": {"sysid": "Q01", "url": "https://q01.example", "user": "dev", "client": "200",
           "enable_transports": true, "transport_read_only": true, "disallowed_ops": "CDUAWLT"},
   "nosid": {"url": "https://x.example", "user": "dev", "client": "001"}
 }}`
@@ -17,9 +17,9 @@ const profileJSON = `{"systems": {
 func env(m map[string]string) func(string) string { return func(k string) string { return m[k] } }
 
 func TestCutProfile(t *testing.T) {
-	for _, args := range [][]string{{"--profile", "d11", "--verbose"}, {"--verbose", "--profile=d11"}} {
+	for _, args := range [][]string{{"--profile", "d01", "--verbose"}, {"--verbose", "--profile=d01"}} {
 		name, rest, err := cutProfile(args)
-		if err != nil || name != "d11" || len(rest) != 1 || rest[0] != "--verbose" {
+		if err != nil || name != "d01" || len(rest) != 1 || rest[0] != "--verbose" {
 			t.Errorf("cutProfile(%v) = %q %v %v", args, name, rest, err)
 		}
 	}
@@ -39,15 +39,15 @@ func TestResolveProfile_PasswordOrder(t *testing.T) {
 		vars   map[string]string
 		want   string
 	}{
-		"system and client": {"q11-200", map[string]string{"VSP_Q11_200_PASSWORD": "a", "VSP_Q11_PASSWORD": "b"}, "a"},
-		"system only":       {"q11-200", map[string]string{"VSP_Q11_PASSWORD": "b", "VSP_Q11-200_PASSWORD": "c"}, "b"},
-		"vsp's name-based":  {"q11-200", map[string]string{"VSP_Q11-200_PASSWORD": "c"}, "c"},
+		"system and client": {"q01-200", map[string]string{"VSP_Q01_200_PASSWORD": "a", "VSP_Q01_PASSWORD": "b"}, "a"},
+		"system only":       {"q01-200", map[string]string{"VSP_Q01_PASSWORD": "b", "VSP_Q01-200_PASSWORD": "c"}, "b"},
+		"vsp's name-based":  {"q01-200", map[string]string{"VSP_Q01-200_PASSWORD": "c"}, "c"},
 		"no sysid, by name": {"nosid", map[string]string{"VSP_NOSID_PASSWORD": "d"}, "d"},
-		"another client's":  {"q11-200", map[string]string{"VSP_Q11_100_PASSWORD": "x"}, ""},
+		"another client's":  {"q01-200", map[string]string{"VSP_Q01_100_PASSWORD": "x"}, ""},
 	} {
 		e, _, err := resolveProfile(tc.system, []byte(profileJSON), env(tc.vars))
 		switch {
-		case tc.want == "" && (err == nil || !strings.Contains(err.Error(), "VSP_Q11_200_PASSWORD")):
+		case tc.want == "" && (err == nil || !strings.Contains(err.Error(), "VSP_Q01_200_PASSWORD")):
 			t.Errorf("%s: err = %v, want one naming the variables", name, err)
 		case tc.want != "" && (err != nil || e["SAP_PASSWORD"] != tc.want):
 			t.Errorf("%s: password %q, err %v; want %q", name, e["SAP_PASSWORD"], err, tc.want)
@@ -57,29 +57,29 @@ func TestResolveProfile_PasswordOrder(t *testing.T) {
 
 // The error names the variables, never a value.
 func TestResolveProfile_FlagsAndLogon(t *testing.T) {
-	e, flags, err := resolveProfile("d11", []byte(profileJSON), env(map[string]string{"VSP_D11_100_PASSWORD": "secret"}))
+	e, flags, err := resolveProfile("d01", []byte(profileJSON), env(map[string]string{"VSP_D01_100_PASSWORD": "secret"}))
 	if err != nil {
 		t.Fatal(err)
 	}
-	for k, v := range map[string]string{"SAP_URL": "https://d11.example:44314", "SAP_USER": "dev", "SAP_CLIENT": "100",
-		"SAP_SYSTEM": "d11", "SAP_LANGUAGE": "DE"} {
+	for k, v := range map[string]string{"SAP_URL": "https://d01.example:44300", "SAP_USER": "dev", "SAP_CLIENT": "100",
+		"SAP_SYSTEM": "d01", "SAP_LANGUAGE": "DE"} {
 		if e[k] != v {
 			t.Errorf("%s = %q, want %q", k, e[k], v)
 		}
 	}
 	got := strings.Join(flags, " ")
 	for _, want := range []string{"--mode hyperfocused", "--enable-transports", "--allowed-packages Z*,$TMP",
-		"--allowed-transports D11K*,D22K*", "--cts-project D11_P00005", "--transport-target /PAR/"} {
+		"--allowed-transports D01K*,D02K*", "--cts-project D01_P00005", "--transport-target /XYZ/"} {
 		if !strings.Contains(got, want) {
 			t.Errorf("flags %q lack %q", got, want)
 		}
 	}
 	if strings.Contains(got, "--read-only") || strings.Contains(got, "--disallowed-ops") {
-		t.Errorf("flags %q carry settings d11 does not have", got)
+		t.Errorf("flags %q carry settings d01 does not have", got)
 	}
-	_, flags, _ = resolveProfile("q11-200", []byte(profileJSON), env(map[string]string{"VSP_Q11_200_PASSWORD": "x"}))
+	_, flags, _ = resolveProfile("q01-200", []byte(profileJSON), env(map[string]string{"VSP_Q01_200_PASSWORD": "x"}))
 	if got := strings.Join(flags, " "); !strings.Contains(got, "--transport-read-only") || !strings.Contains(got, "--disallowed-ops CDUAWLT") {
-		t.Errorf("q11-200 flags %q", got)
+		t.Errorf("q01-200 flags %q", got)
 	}
 }
 

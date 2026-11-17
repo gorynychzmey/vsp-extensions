@@ -80,7 +80,7 @@ func TestReadTableInfo_RefusesWhatIsNotClientCustomizing(t *testing.T) {
 func TestValidate(t *testing.T) {
 	tab := validTable(t)
 	key := map[string]string{"applic": "01", "STEP": "PAPHIN"}
-	if k, s, err := validate(tab, RowEdit{Key: key, Set: map[string]string{"fmodul": "/PAR/X"}}); err != nil || len(k) != 2 || len(s) != 1 || s[0].Name != "FMODUL" {
+	if k, s, err := validate(tab, RowEdit{Key: key, Set: map[string]string{"fmodul": "/XYZ/X"}}); err != nil || len(k) != 2 || len(s) != 1 || s[0].Name != "FMODUL" {
 		t.Fatalf("valid change: %v %v %v", k, s, err)
 	}
 	for name, e := range map[string]RowEdit{
@@ -116,19 +116,19 @@ func TestTableKey_PadsEachFieldToItsLength(t *testing.T) {
 
 func TestRowEditSource(t *testing.T) {
 	tab := validTable(t)
-	key, set, err := validate(tab, RowEdit{Key: map[string]string{"APPLIC": "01", "STEP": "PAPH'N"}, Set: map[string]string{"FMODUL": "/PAR/RF_PACK_CREA_TO_PAI"}})
+	key, set, err := validate(tab, RowEdit{Key: map[string]string{"APPLIC": "01", "STEP": "PAPH'N"}, Set: map[string]string{"FMODUL": "/XYZ/RF_PACK_CREA_TO_PAI"}})
 	if err != nil {
 		t.Fatal(err)
 	}
 	src := rowEditSource("ZTEMP_TROW_1", "/SCWM/TSTEP_FLOW", key, map[string]string{"APPLIC": "01", "STEP": "PAPH'N"}, set,
-		map[string]string{"FMODUL": "/SCWM/RF_PACK_CREA_TO_PAI"}, map[string]string{"FMODUL": "/PAR/RF_PACK_CREA_TO_PAI"}, "TR-REQ", "10001PAPH'N")
+		map[string]string{"FMODUL": "/SCWM/RF_PACK_CREA_TO_PAI"}, map[string]string{"FMODUL": "/XYZ/RF_PACK_CREA_TO_PAI"}, "TR-REQ", "10001PAPH'N")
 	for _, want := range []string{
 		"REPORT ztemp_trow_1.",
 		"gs_row   TYPE /SCWM/TSTEP_FLOW",
 		"SELECT SINGLE * FROM /SCWM/TSTEP_FLOW INTO gs_row WHERE APPLIC = '01' AND STEP = 'PAPH''N'.",
 		"IF gs_row-fmodul <> '/SCWM/RF_PACK_CREA_TO_PAI'.",
 		"CALL FUNCTION 'ENQUEUE_E_TABLE'",
-		"gs_row-fmodul = '/PAR/RF_PACK_CREA_TO_PAI'.",
+		"gs_row-fmodul = '/XYZ/RF_PACK_CREA_TO_PAI'.",
 		"PERFORM check_field USING '/SCWM/TSTEP_FLOW' 'FMODUL' gs_row-fmodul.",
 		"iv_order = 'TR-REQ' iv_with_dialog = 'D'",
 		"SELECT SINGLE trkorr FROM e071k INTO gv_found",
@@ -178,10 +178,10 @@ func TestRequestOf(t *testing.T) {
 
 // A row that already holds the values is not touched: no report runs.
 func TestEditRow_UnchangedRowRunsNothing(t *testing.T) {
-	f := &fakeDDIC{contflag: "C", clidep: "X", row: map[string]string{"FMODUL": "/PAR/X"},
-		e070: map[string]map[string]string{"D11K900001": {"TRKORR": "D11K900001", "TRFUNCTION": "W", "TRSTATUS": "D"}}}
-	res, err := EditRow(context.Background(), nil, f, "100", RowEdit{Table: "ZTAB", Transport: "D11K900001",
-		Key: map[string]string{"APPLIC": "01", "STEP": "S"}, Set: map[string]string{"FMODUL": "/PAR/X"}})
+	f := &fakeDDIC{contflag: "C", clidep: "X", row: map[string]string{"FMODUL": "/XYZ/X"},
+		e070: map[string]map[string]string{"D01K900001": {"TRKORR": "D01K900001", "TRFUNCTION": "W", "TRSTATUS": "D"}}}
+	res, err := EditRow(context.Background(), nil, f, "100", RowEdit{Table: "ZTAB", Transport: "D01K900001",
+		Key: map[string]string{"APPLIC": "01", "STEP": "S"}, Set: map[string]string{"FMODUL": "/XYZ/X"}})
 	if err != nil || !res.Unchanged || f.ran {
 		t.Errorf("res = %+v, err = %v, ran = %v", res, err, f.ran)
 	}
@@ -212,11 +212,11 @@ func TestExtensionIsWellBehaved(t *testing.T) {
 // The gates before any RFC: the table list, a request, transports enabled,
 // the request whitelist, transport_read_only.
 func TestHandleEditGates(t *testing.T) {
-	on := adt.SafetyConfig{EnableTransports: true, AllowedTransports: []string{"D11K*"}}
+	on := adt.SafetyConfig{EnableTransports: true, AllowedTransports: []string{"D01K*"}}
 	tro := on
 	tro.TransportReadOnly = true
 	tables := map[string]any{"tables": []any{"/SCWM/TSTEP_FLOW"}}
-	ok := map[string]any{"key": map[string]any{"APPLIC": "01"}, "set": map[string]any{"FMODUL": "X"}, "transport": "D11K900001"}
+	ok := map[string]any{"key": map[string]any{"APPLIC": "01"}, "set": map[string]any{"FMODUL": "X"}, "transport": "D01K900001"}
 	with := func(k string, v any) map[string]any {
 		m := map[string]any{}
 		for a, b := range ok {

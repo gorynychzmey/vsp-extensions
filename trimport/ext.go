@@ -55,9 +55,9 @@ func (Extension) Help() string {
 RFC, CTS_API_IMPORT_CHANGE_REQUEST). Off unless the system allows it ("transport-import": {"allow": true}
 under "extensions" in its .vsp.json entry); needs --enable-transports, and allowed_transports limits
 the requests:
-  SAP(action="import", target="TRANSPORT D11K900001")
-  SAP(action="import", target="TRANSPORT D11K900001,D11K900002", params={"client": "200"})
-  SAP(action="import", target="TRANSPORT D11K900001", params={"async": true})   returns a task at once
+  SAP(action="import", target="TRANSPORT D01K900001")
+  SAP(action="import", target="TRANSPORT D01K900001,D01K900002", params={"client": "200"})
+  SAP(action="import", target="TRANSPORT D01K900001", params={"async": true})   returns a task at once
 "timeout" (seconds, default 3600) bounds the import. An import into production runs for minutes; with
 "async" follow it with SAP(action="debug", target="GET_ASYNC_RESULT", params={"task_id": "...", "wait_seconds": 600})
 or read TPALOG with SAP(action="system", params={"type": "import_status", "transport": "..."}).`
@@ -79,8 +79,8 @@ The import changes the system, so it is off unless the system allows it
 needs enable_transports; read_only and --disallowed-ops X refuse it, and
 allowed_transports limits which requests it takes.
 
-  vsp -s qas transport import D11K900001
-  vsp -s qas transport import D11K900001 D11K900002 --client 200 --json`,
+  vsp -s qas transport import D01K900001
+  vsp -s qas transport import D01K900001 D01K900002 --client 200 --json`,
 		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			e, err := env(cmd)

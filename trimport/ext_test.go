@@ -36,11 +36,11 @@ func TestCheckAllowed(t *testing.T) {
 		"read-only":                 {on, allow, true, "read-only"},
 		"transports off":            {adt.SafetyConfig{}, allow, false, "TransportImport"},
 		"transport ops disallowed":  {adt.SafetyConfig{EnableTransports: true, DisallowedOps: "X"}, allow, false, "TransportImport"},
-		"outside allowed":           {adt.SafetyConfig{EnableTransports: true, AllowedTransports: []string{"A4HK*"}}, allow, false, "D11K900001"},
+		"outside allowed":           {adt.SafetyConfig{EnableTransports: true, AllowedTransports: []string{"A4HK*"}}, allow, false, "D01K900001"},
 		"other writes disallowed":   {adt.SafetyConfig{EnableTransports: true, DisallowedOps: "CDUAWLT"}, allow, false, ""},
 		"not a request (injection)": {on, allow, false, ""},
 	} {
-		reqs := []string{"d11k900001"}
+		reqs := []string{"d01k900001"}
 		if name == "not a request (injection)" {
 			reqs, tc.want = []string{"X' OR '1'='1"}, "not a request number"
 		}
@@ -48,7 +48,7 @@ func TestCheckAllowed(t *testing.T) {
 		switch {
 		case tc.want == "" && err != nil:
 			t.Errorf("%s: refused: %v", name, err)
-		case tc.want == "" && (len(got) != 1 || got[0] != "D11K900001"):
+		case tc.want == "" && (len(got) != 1 || got[0] != "D01K900001"):
 			t.Errorf("%s: requests = %v", name, got)
 		case tc.want != "" && (err == nil || !strings.Contains(err.Error(), tc.want)):
 			t.Errorf("%s: err = %v, want one naming %q", name, err, tc.want)
@@ -60,7 +60,7 @@ func TestCheckAllowed(t *testing.T) {
 // refused before anything else.
 func TestHandleImportRefusesADestinationOverride(t *testing.T) {
 	env := envWith(adt.SafetyConfig{EnableTransports: true}, map[string]any{"allow": true}, false)
-	res, err := handleImport(context.Background(), env, "D11K900001", map[string]any{"host": "10.0.0.1"})
+	res, err := handleImport(context.Background(), env, "D01K900001", map[string]any{"host": "10.0.0.1"})
 	text, _ := res.Content[0].(mcp.TextContent)
 	if err != nil || !res.IsError || !strings.Contains(text.Text, "own system") {
 		t.Errorf("host override: %+v %v", res, err)

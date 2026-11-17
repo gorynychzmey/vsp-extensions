@@ -59,7 +59,7 @@ should take imports and nothing else runs as above instead of `--read-only`:
 
 ## CTS+ (non-ABAP requests)
 
-A request of a non-ABAP system -- `D22K…` for an SAP PI system `D22` --
+A request of a non-ABAP system -- `D02K…` for an SAP PI system `D02` --
 lives in the Transport Organizer of the domain controller, but belongs to its
 source system, and the classic `TR_*` function modules refuse to change it
 there. `cts-plus` runs on a server connected to the domain controller and
@@ -67,10 +67,10 @@ uses the `CTS_WBO_*` and `SCTS_API_*` function modules over classic RFC, the
 path the CTS Organizer Web UI and STMS take:
 
 ```text
-SAP(action="read",    target="CTSREQUEST D22K900240")
-SAP(action="release", target="CTSREQUEST D22K900240", params={"project": "DEV_P00005"})
-SAP(action="read",    target="CTSQUEUE QAS", params={"request": "D22K900240"})
-SAP(action="import",  target="CTSREQUEST D22K900240", params={"system": "QAS"})
+SAP(action="read",    target="CTSREQUEST D02K900240")
+SAP(action="release", target="CTSREQUEST D02K900240", params={"project": "DEV_P00005"})
+SAP(action="read",    target="CTSQUEUE QAS", params={"request": "D02K900240"})
+SAP(action="import",  target="CTSREQUEST D02K900240", params={"system": "QAS"})
 ```
 
 A PI export (ESR or Integration Directory) leaves the request without a CTS
@@ -85,8 +85,8 @@ left to the built-in transport actions. Importing is off unless the system
 lists the target systems:
 
 ```json
-{"systems": {"dev": {"enable_transports": true, "allowed_transports": ["DEVK*", "D22K*"],
-  "extensions": {"cts-plus": {"import_systems": ["Q22"]}}}}}
+{"systems": {"dev": {"enable_transports": true, "allowed_transports": ["DEVK*", "D02K*"],
+  "extensions": {"cts-plus": {"import_systems": ["Q02"]}}}}}
 ```
 
 ## Customizing rows

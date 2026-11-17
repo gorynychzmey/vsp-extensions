@@ -11,8 +11,8 @@ import (
 	"github.com/oisee/vibing-steampunk/pkg/saprfc"
 )
 
-// A non-ABAP request (CTS+) belongs to its source system -- D22K... for a PI
-// system D22 -- but lives in the domain controller's Transport Organizer. The
+// A non-ABAP request (CTS+) belongs to its source system -- D02K... for a PI
+// system D02 -- but lives in the domain controller's Transport Organizer. The
 // classic request function modules refuse it there ("Incorrect system or
 // wrong naming convention"): TR_ASSIGN_REQUEST_TO_PROJECT, TR40_SET_ATTRIBUTE,
 // TMW_ADD_TR_ATTRIBUTES. The CTS_WBO_* function modules go through the CTS
